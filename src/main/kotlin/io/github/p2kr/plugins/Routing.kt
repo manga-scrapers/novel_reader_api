@@ -1,13 +1,12 @@
 package io.github.p2kr.plugins
 
-import com.google.gson.Gson
 import io.github.p2kr.utilities.MainScraper
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
-    val gson = Gson()
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -15,8 +14,12 @@ fun Application.configureRouting() {
         get("/search") {
             val query = call.request.queryParameters
             //Currently using ReadNovelFull.com
-            val searchBook = MainScraper.getSearchBooksList(query);
-            call.respond(searchBook)
+            try {
+                val searchBook = MainScraper.getSearchBooksList(query)
+                call.respond(searchBook)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, e.message!!)
+            }
         }
     }
 }
