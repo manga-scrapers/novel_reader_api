@@ -1,5 +1,8 @@
 package io.github.p2kr.scrapers
 
+import com.google.gson.Gson
+import io.github.p2kr.models.Book
+import io.github.p2kr.models.Chapter
 import io.github.p2kr.models.SearchBook
 import io.ktor.http.*
 import org.openqa.selenium.By
@@ -10,6 +13,7 @@ import org.openqa.selenium.chrome.ChromeOptions
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
+val gson = Gson()
 
 object ReadNovelFullScraper : GenericScraper {
     private const val BASE_URL = "https://readnovelfull.com"
@@ -88,5 +92,56 @@ object ReadNovelFullScraper : GenericScraper {
         driver.quit()
         LOG.debug("Total length ($pageCount pages) of search results = " + listOfSearchBook.size)
         return listOfSearchBook
+    }
+
+    override fun getBook(query: Parameters): Book {
+        val searchBook = gson.fromJson(query["searchBook"], SearchBook::class.java)
+        val book = Book()
+
+        val options = ChromeOptions()
+        val driver = ChromeDriver(options)
+
+        driver.get(searchBook.bookLink)
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15))
+        driver.manage().window().maximize()
+
+        //////////////////////
+        // Do scraping here //
+        /////////////////////
+
+        book.bookLink = searchBook.bookLink
+        book.author = searchBook.author
+
+        book.name = driver.findElement(By.xpath("""//*[@id="novel"]/div[1]/div[1]/div[3]/h3""")).text
+
+        book.thumbnailLink = driver.findElement(By.xpath("""//div[@class="book"]//img""")).getAttribute("src")
+
+        book.genres =
+            driver.findElements(By.xpath("""//ul[contains(@class, "info")]//h3[contains(text(), "Genre")]//..//a"""))
+                .map { it.text }
+
+        //TODO: replace with class
+        book.status =
+            driver.findElement(By.xpath("""//ul[contains(@class, "info")]//h3[contains(text(), "Status")]//..//a""")).text
+
+        book.rating =
+            driver.findElement(By.xpath("""//div[@class="rate-info"]//span[@itemprop="ratingValue"]""")).text.toFloat()
+
+        book.lastChapterUpdateTime =
+            driver.findElement(By.xpath("""//div[contains(@class, "chapter")]//div[@class="item-time"]""")).text
+
+        book.description = driver.findElement(By.xpath("""//*[@id="tab-description"]/div/p""")).text
+
+
+        /////////////////////
+        // Close resources //
+        /////////////////////
+
+        driver.quit()
+        return book
+    }
+
+    override fun getChapter(query: Parameters): Chapter {
+        TODO("Not yet implemented")
     }
 }

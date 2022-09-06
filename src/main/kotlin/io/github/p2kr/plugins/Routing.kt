@@ -21,5 +21,14 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.InternalServerError, e.message!!)
             }
         }
+        post("/getBook") {
+            val query = call.request.queryParameters
+            try {
+                val book = MainScraper.getBook(query)
+                call.respond(book)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, e.message!!)
+            }
+        }
     }
 }
